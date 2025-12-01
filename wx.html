@@ -2,11 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="google-site-verification" content="P6rqWS7FvCkbQVwIJLtztDsRWp4XSqEZeMLUkLn_MMo" />
-  <title>NavForce (Leaflet)</title>
+  <title>Weather + Marine Route Planner (Leaflet)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
 
-  <!-- Leaflet CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -284,7 +282,7 @@
 
     <label class="top-waypoints-toggle">
       <input type="checkbox" id="enableWaypointsTop" />
-      Enable Waypoints Drops
+      Waypoints
     </label>
 
     <div class="spacer"></div>
@@ -293,6 +291,7 @@
     <button id="zoomOutBtn" title="Zoom out">−</button>
 
     <button id="homeBtn" title="Home">🏠 Home</button>
+    <button id="contactBtn" title="Contact">Contact</button>
 
     <button id="toggleForecastBtn">Show forecast</button>
   </div>
@@ -408,6 +407,7 @@
     const routeResetBtn = document.getElementById("routeResetBtn");
     const routeExpandBtn = document.getElementById("routeExpandBtn");
     const homeBtn = document.getElementById("homeBtn");
+    const contactBtn = document.getElementById("contactBtn");
     const zoomInBtn = document.getElementById("zoomInBtn");
     const zoomOutBtn = document.getElementById("zoomOutBtn");
 
@@ -421,13 +421,19 @@
       attribution: "© OpenStreetMap contributors"
     }).addTo(map);
 
+    // Navigation buttons
     homeBtn.onclick = () => {
       window.location.href = "index.html";
     };
+    contactBtn.onclick = () => {
+      window.location.href = "contact.html";
+    };
 
+    // Zoom buttons
     zoomInBtn.onclick = () => map.zoomIn();
     zoomOutBtn.onclick = () => map.zoomOut();
 
+    // Cursor display
     map.on("mousemove", (e) => {
       const lat = e.latlng.lat.toFixed(2);
       const lon = e.latlng.lng.toFixed(2);
