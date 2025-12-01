@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta name="google-site-verification" content="P6rqWS7FvCkbQVwIJLtztDsRWp4XSqEZeMLUkLn_MMo" />
   <meta charset="UTF-8" />
   <title>Weather + Marine Route Planner (Leaflet)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
@@ -69,7 +70,7 @@
 
     #placeInput, #latLonInput {
       min-width: 120px;
-      max-width: 180px;
+      max-width: 220px;
     }
 
     #cursorLatLon {
@@ -275,7 +276,7 @@
     <input id="placeInput" placeholder="Place name" />
     <button id="placeGo">Go</button>
 
-    <input id="latLonInput" placeholder="37 47.5 N, 122 25.2 W" />
+    <input id="latLonInput" placeholder="18.55, 72.95 / 32 33.5N 133 55.5E" />
     <button id="latLonGo">Go</button>
 
     <span id="cursorLatLon">–</span>
@@ -354,6 +355,9 @@
         <option value="6">6 hr</option>
         <option value="12">12 hr</option>
         <option value="24">24 hr</option>
+        <option value="48">48 hr</option>
+        <option value="72">72 hr</option>
+        <option value="96">96 hr</option>
       </select>
       <div class="forecast-header-spacer"></div>
       <button class="forecast-hide-btn" id="hideForecastBtn" title="Hide">×</button>
@@ -421,7 +425,7 @@
       attribution: "© OpenStreetMap contributors"
     }).addTo(map);
 
-    // Navigation buttons
+    // Navigation
     homeBtn.onclick = () => {
       window.location.href = "index.html";
     };
@@ -948,32 +952,91 @@
 
     async function handleLatLonSearch() {
       const value = latLonInput.value.trim();
-      const pattern =
-        /^(\d{1,2})\s+(\d{1,2}(\.\d+)?)\s*([NSns]),\s*(\d{1,3})\s+(\d{1,2}(\.\d+)?)\s*([EWew])$/;
-      const match = value.match(pattern);
-      if (!match) {
-        alert("Format: 37 47.5 N, 122 25.2 W");
+      if (!value) return;
+
+      // 1) decimal "lat, lon" (e.g. "18.55, 72.95")
+      let m = value.match(/^\s*([+-]?\d+(\.\d+)?)\s*,\s*([+-]?\d+(\.\d+)?)\s*$/);
+      if (m) {
+        const lat = parseFloat(m[1]);
+        const lon = parseFloat(m[3]);
+        if (isFinite(lat) && isFinite(lon)) {
+          map.setView([lat, lon], 4);
+          if (enableWaypointsTop.checked) addWaypoint(lat, lon); else addSingleMarker(lat, lon);
+          fetchWeatherAndForecast(lat, lon);
+          return;
+        }
+      }
+
+      // 2) decimal with N/S E/W (e.g. "18.55 N 72.95 E")
+      m = value.match(/^\s*([+-]?\d+(\.\d+)?)\s*([NSns])\s+([+-]?\d+(\.\d+)?)\s*([EWew])\s*$/);
+      if (m) {
+        let lat = parseFloat(m[1]);
+        let lon = parseFloat(m[4]);
+        const latDir = m[3].toUpperCase();
+        const lonDir = m[6].toUpperCase();
+        if (latDir === "S") lat = -lat;
+        if (lonDir === "W") lon = -lon;
+        if (isFinite(lat) && isFinite(lon)) {
+          map.setView([lat, lon], 4);
+          if (enableWaypointsTop.checked) addWaypoint(lat, lon); else addSingleMarker(lat, lon);
+          fetchWeatherAndForecast(lat, lon);
+          return;
+        }
+      }
+
+      // 3) degrees + minutes with comma "37 47.5 N, 122 25.2 W"
+      m = value.match(
+        /^(\d{1,2})\s+(\d{1,2}(\.\d+)?)\s*([NSns])\s*,\s*(\d{1,3})\s+(\d{1,2}(\.\d+)?)\s*([EWew])$/
+      );
+      if (m) {
+        let latDeg = parseFloat(m[1]);
+        let latMin = parseFloat(m[2]);
+        let latDir = m[4].toUpperCase();
+        let lonDeg = parseFloat(m[5]);
+        let lonMin = parseFloat(m[6]);
+        let lonDir = m[8].toUpperCase();
+
+        let lat = latDeg + latMin / 60;
+        if (latDir === "S") lat = -lat;
+        let lon = lonDeg + lonMin / 60;
+        if (lonDir === "W") lon = -lon;
+
+        map.setView([lat, lon], 4);
+        if (enableWaypointsTop.checked) addWaypoint(lat, lon); else addSingleMarker(lat, lon);
+        fetchWeatherAndForecast(lat, lon);
         return;
       }
-      let latDeg = parseFloat(match[1]);
-      let latMin = parseFloat(match[2]);
-      let latDir = match[4].toUpperCase();
-      let lonDeg = parseFloat(match[5]);
-      let lonMin = parseFloat(match[6]);
-      let lonDir = match[8].toUpperCase();
 
-      let lat = latDeg + latMin / 60;
-      if (latDir === "S") lat = -lat;
-      let lon = lonDeg + lonMin / 60;
-      if (lonDir === "W") lon = -lon;
+      // 4) degrees + minutes without comma "32 33.5N 133 55.5E"
+      m = value.match(
+        /^\s*(\d{1,2})\s+(\d{1,2}(\.\d+)?)\s*([NSns])\s+(\d{1,3})\s+(\d{1,2}(\.\d+)?)\s*([EWew])\s*$/
+      );
+      if (m) {
+        let latDeg = parseFloat(m[1]);
+        let latMin = parseFloat(m[2]);
+        let latDir = m[4].toUpperCase();
+        let lonDeg = parseFloat(m[5]);
+        let lonMin = parseFloat(m[6]);
+        let lonDir = m[7].toUpperCase();
 
-      map.setView([lat, lon], 4);
-      if (enableWaypointsTop.checked) {
-        addWaypoint(lat, lon);
-      } else {
-        addSingleMarker(lat, lon);
+        let lat = latDeg + latMin / 60;
+        if (latDir === "S") lat = -lat;
+        let lon = lonDeg + lonMin / 60;
+        if (lonDir === "W") lon = -lon;
+
+        map.setView([lat, lon], 4);
+        if (enableWaypointsTop.checked) addWaypoint(lat, lon); else addSingleMarker(lat, lon);
+        fetchWeatherAndForecast(lat, lon);
+        return;
       }
-      fetchWeatherAndForecast(lat, lon);
+
+      alert(
+        "Lat/Lon formats supported:\n" +
+        "• 18.55, 72.95\n" +
+        "• 18.55 N 72.95 E\n" +
+        "• 37 47.5 N, 122 25.2 W\n" +
+        "• 32 33.5N 133 55.5E"
+      );
     }
   </script>
 </body>
