@@ -5,360 +5,111 @@
   <meta charset="UTF-8" />
   <title>Weather + Marine Route Planner (Leaflet)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""
-  />
-
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin />
   <style>
-    html, body {
-      height: 100%;
-      width: 100%;
-      padding: 0;
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-    body {
-      background: #020617;
-      color: #f9fafb;
-    }
-
-    #map {
-      width: 100vw;
-      height: 100vh;
-    }
+    html, body { height:100%; width:100%; margin:0; padding:0;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    body { background:#020617; color:#f9fafb; }
+    #map { width:100vw; height:100vh; }
 
     .top-bar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      z-index: 1000;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      align-items: center;
-      box-sizing: border-box;
-      padding: 6px 6px 4px 6px;
-      background: linear-gradient(90deg, #111827 10%, #1f2937 60%, #312e81 100%);
-      color: #f9fafb;
-      font-size: 0.9rem;
+      position:fixed; top:0; left:0; width:100vw; z-index:1000;
+      display:flex; flex-wrap:wrap; gap:6px; align-items:center;
+      padding:6px 6px 4px 6px; box-sizing:border-box;
+      background:linear-gradient(90deg,#111827 10%,#1f2937 60%,#312e81 100%);
+      color:#f9fafb; font-size:0.9rem;
     }
-
-    .top-bar button,
-    .top-bar input {
-      border-radius: 7px;
-      border: 1px solid #4b5563;
-      padding: 5px 8px;
-      font-size: 0.9rem;
+    .top-bar button,.top-bar input {
+      border-radius:7px; border:1px solid #4b5563;
+      padding:5px 8px; font-size:0.9rem;
     }
-
-    .top-bar button {
-      cursor: pointer;
-      font-weight: 600;
-      background: #1f2937;
-      color: #f9fafb;
-    }
-
-    .top-bar input {
-      background: #e5f4ff;
-      color: #111827;
-    }
-
-    #placeInput, #latLonInput {
-      min-width: 120px;
-      max-width: 180px;
-    }
-
+    .top-bar button { cursor:pointer; font-weight:600; background:#1f2937; color:#f9fafb; }
+    .top-bar input { background:#e5f4ff; color:#111827; }
+    #placeInput,#latLonInput { min-width:120px; max-width:180px; }
     #cursorLatLon {
-      font-family: monospace;
-      padding: 5px 8px;
-      background: #e5f4ff;
-      color: #111827;
-      border-radius: 7px;
-      border: 1px solid #4b5563;
-      min-width: 130px;
-      text-align: center;
+      font-family:monospace; padding:5px 8px; background:#e5f4ff; color:#111827;
+      border-radius:7px; border:1px solid #4b5563; min-width:130px; text-align:center;
     }
-
-    .top-waypoints-toggle {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    #enableWaypointsTop {
-      transform: scale(1.1);
-      accent-color: #facc15;
-    }
-
-    .spacer {
-      flex: 1 1 auto;
-    }
+    .top-waypoints-toggle { display:flex; align-items:center; gap:4px; }
+    #enableWaypointsTop { transform:scale(1.1); accent-color:#facc15; }
+    .spacer { flex:1 1 auto; }
 
     .weather-panel {
-      position: fixed;
-      right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-      min-width: 210px;
-      max-width: 320px;
-      border-radius: 12px;
-      padding: 10px 12px;
-      font-size: 0.9rem;
-      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.9);
-      background: #e5e7eb;
-      color: #111827;
-      z-index: 900;
-      display: none;
+      position:fixed; right:8px; top:50%; transform:translateY(-50%);
+      min-width:210px; max-width:320px; border-radius:12px; padding:10px 12px;
+      font-size:0.9rem; box-shadow:0 4px 18px rgba(15,23,42,.9);
+      background:#e5e7eb; color:#111827; z-index:900; display:none;
     }
-    .weather-panel.active {
-      display: block;
-    }
+    .weather-panel.active { display:block; }
     .weather-panel button {
-      float: right;
-      background: transparent;
-      border: 0;
-      font-size: 1.1rem;
-      cursor: pointer;
-      color: #4b5563;
+      float:right; background:transparent; border:0; font-size:1.1rem;
+      cursor:pointer; color:#4b5563;
     }
 
     .forecast-bar {
-      position: fixed;
-      left: 0;
-      bottom: 0;
-      width: 100vw;
-      background: rgba(15, 23, 42, 0.97);
-      color: #e5e7eb;
-      z-index: 900;
-      box-sizing: border-box;
-      padding: 5px 8px 6px 8px;
-      font-size: 0.8rem;
-      display: none;
+      position:fixed; left:0; bottom:0; width:100vw;
+      background:rgba(15,23,42,.97); color:#e5e7eb; z-index:900;
+      padding:5px 8px 6px 8px; box-sizing:border-box;
+      font-size:0.8rem; display:none;
     }
-    .forecast-header {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 4px;
-    }
+    .forecast-header { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
     .forecast-header select {
-      padding: 3px 5px;
-      border-radius: 6px;
-      border: 1px solid #9ca3af;
-      font-size: 0.8rem;
+      padding:3px 5px; border-radius:6px; border:1px solid #9ca3af; font-size:0.8rem;
     }
-    .forecast-header-spacer {
-      margin-left: auto;
-    }
+    .forecast-header-spacer { margin-left:auto; }
     .forecast-hide-btn {
-      background: transparent;
-      border: 1px solid #9ca3af;
-      border-radius: 50%;
-      width: 22px;
-      height: 22px;
-      color: #e5e7eb;
-      cursor: pointer;
-      font-size: 0.8rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      background:transparent; border:1px solid #9ca3af; border-radius:50%;
+      width:22px; height:22px; color:#e5e7eb; cursor:pointer; font-size:0.8rem;
+      display:flex; align-items:center; justify-content:center;
     }
-    .forecast-scroll {
-      display: flex;
-      overflow-x: auto;
-      gap: 4px;
-      padding-bottom: 2px;
-    }
+    .forecast-scroll { display:flex; overflow-x:auto; gap:4px; padding-bottom:2px; }
     .forecast-item {
-      flex: 0 0 auto;
-      min-width: 110px;
-      padding: 3px 5px;
-      border-radius: 8px;
-      background: #1f2937;
-      text-align: left;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+      flex:0 0 auto; min-width:110px; padding:3px 5px; border-radius:8px;
+      background:#1f2937; text-align:left; box-shadow:0 1px 4px rgba(0,0,0,.5);
     }
-    .forecast-item-time {
-      font-size: 0.75rem;
-      opacity: 0.8;
-      margin-bottom: 2px;
-    }
-    .forecast-item-temp {
-      font-weight: 600;
-      margin-bottom: 1px;
-    }
-    .forecast-item-line {
-      font-size: 0.75rem;
-    }
-    .forecast-item-icon {
-      width: 24px;
-      height: 24px;
-      vertical-align: middle;
-      margin-right: 3px;
-    }
+    .forecast-item-time { font-size:0.75rem; opacity:.8; margin-bottom:2px; }
+    .forecast-item-temp { font-weight:600; margin-bottom:1px; }
+    .forecast-item-line { font-size:0.75rem; }
+    .forecast-item-icon { width:24px; height:24px; vertical-align:middle; margin-right:3px; }
 
     .route-details {
-      position: fixed;
-      top: 46px;
-      left: 0;
-      width: 100vw;
-      max-height: 110px;
-      overflow: auto;
-      z-index: 850;
-      background: rgba(15, 23, 42, 0.96);
-      color: #f5f7ff;
-      padding: 4px 6px;
-      box-sizing: border-box;
-      display: none;
-      font-size: 0.8rem;
+      position:fixed; top:46px; left:0; width:100vw; max-height:110px;
+      overflow:auto; z-index:850; background:rgba(15,23,42,.96); color:#f5f7ff;
+      padding:4px 6px; box-sizing:border-box; display:none; font-size:0.8rem;
     }
-    .route-details table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.8rem;
+    .route-details table { width:100%; border-collapse:collapse; font-size:0.8rem; }
+    .route-details th,.route-details td {
+      padding:3px 4px; border-bottom:1px solid #ffffff22;
+      text-align:left; white-space:nowrap;
     }
-    .route-details th,
-    .route-details td {
-      padding: 3px 4px;
-      border-bottom: 1px solid #ffffff22;
-      text-align: left;
-      white-space: nowrap;
-    }
-    .route-details th {
-      position: sticky;
-      top: 0;
-      background: #020617;
-      z-index: 1;
-    }
+    .route-details th { position:sticky; top:0; background:#020617; z-index:1; }
 
     .osm-attrib {
-      position: fixed;
-      right: 6px;
-      bottom: 28px;
-      z-index: 901;
-      background: rgba(0,0,0,0.7);
-      color: #fff;
-      font-size: 0.72rem;
-      padding: 2px 5px;
-      border-radius: 4px;
+      position:fixed; right:6px; bottom:28px; z-index:901;
+      background:rgba(0,0,0,.7); color:#fff; font-size:0.72rem;
+      padding:2px 5px; border-radius:4px;
     }
-    .osm-attrib a {
-      color: #a5d8ff;
-      text-decoration: none;
+    .osm-attrib a { color:#a5d8ff; text-decoration:none; }
+
+    @media (max-width:600px){
+      .top-bar{font-size:0.78rem;padding:4px;gap:4px;}
+      #placeInput,#latLonInput{min-width:100px;max-width:130px;}
+      .weather-panel{max-width:80vw;right:4px;}
+      .route-details{top:90px;width:100vw;max-height:40vh;font-size:0.75rem;padding:4px;}
+      .route-details>div{display:flex;flex-wrap:wrap;gap:4px;}
+      #routeExpandBtn{display:none;}
+      #map{margin-top:150px;}
+      body.route-collapsed .route-details{max-height:26px;overflow:hidden;}
+      body.route-collapsed #map{margin-top:120px;}
     }
-
-    /* Mobile tweaks + collapsible console */
-    @media (max-width: 600px) {
-      .top-bar {
-        font-size: 0.78rem;
-        padding: 4px;
-        gap: 4px;
-      }
-      #placeInput, #latLonInput {
-        min-width: 100px;
-        max-width: 130px;
-      }
-      .weather-panel {
-        max-width: 80vw;
-        right: 4px;
-      }
-
-      .route-details {
-        position: fixed;
-        top: 90px;
-        left: 0;
-        width: 100vw;
-        max-height: 40vh;
-        overflow: auto;
-        font-size: 0.75rem;
-        padding: 4px 4px;
-      }
-
-      .route-details > div {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-      }
-
-      .route-details span[style*="Route console"] {
-        flex-basis: 100%;
-        font-size: 0.8rem;
-      }
-
-      .route-details label {
-        display: flex;
-        align-items: center;
-        gap: 3px;
-        font-size: 0.72rem;
-      }
-
-      #vesselSpeed {
-        width: 70px;
-      }
-      #departureUtc {
-        width: 170px;
-      }
-
-      #routeExpandBtn {
-        display: none;
-      }
-
-      #map {
-        margin-top: 150px;
-      }
-
-      body.route-collapsed .route-details {
-        max-height: 26px;
-        overflow: hidden;
-      }
-      body.route-collapsed #map {
-        margin-top: 120px;
-      }
-    }
-
-    /* Landscape phones: center console header, no scroll */
-    @media (max-height: 450px) {
-      .route-details {
-        top: 90px;
-        max-height: 38vh;
-        padding: 4px 4px;
-      }
-
-      .route-details > div {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 6px;
-        overflow: visible;
-      }
-
-      .route-details span[style*="Route console"] {
-        flex-basis: 100%;
-        text-align: center;
-      }
-
-      .route-details label {
-        font-size: 0.8rem;
-      }
-
-      #vesselSpeed {
-        width: 70px;
-      }
-      #departureUtc {
-        width: 180px;
-      }
-
-      body.route-collapsed .route-details {
-        max-height: 30px;
-      }
-
-      #map {
-        margin-top: 145px;
-      }
+    @media (max-height:450px){
+      .route-details{top:90px;max-height:38vh;padding:4px;}
+      .route-details>div{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;}
+      body.route-collapsed .route-details{max-height:30px;}
+      #map{margin-top:145px;}
     }
   </style>
 </head>
@@ -368,25 +119,17 @@
   <div class="top-bar">
     <input id="placeInput" placeholder="Place name" />
     <button id="placeGo">Go</button>
-
     <input id="latLonInput" placeholder="37 47.5 N, 122 25.2 W" />
     <button id="latLonGo">Go</button>
-
     <span id="cursorLatLon">–</span>
-
     <label class="top-waypoints-toggle">
-      <input type="checkbox" id="enableWaypointsTop" />
-      Waypoints
+      <input type="checkbox" id="enableWaypointsTop" /> Waypoints
     </label>
-
     <div class="spacer"></div>
-
     <button id="zoomInBtn" title="Zoom in">+</button>
     <button id="zoomOutBtn" title="Zoom out">−</button>
-
     <button id="homeBtn" title="Home">🏠 Home</button>
     <button id="contactBtn" title="Contact">Contact</button>
-
     <button id="toggleForecastBtn">Show forecast</button>
   </div>
 
@@ -419,18 +162,10 @@
     <table>
       <thead>
         <tr>
-          <th>#</th>
-          <th>Lat</th>
-          <th>Lon</th>
-          <th>Dist (nm)</th>
-          <th>ETA UTC</th>
-          <th>Temp</th>
-          <th>Wind</th>
-          <th>Press</th>
-          <th>Hum</th>
-          <th>Weather</th>
-          <th>Swell</th>
-          <th>Wind wave</th>
+          <th>#</th><th>Lat</th><th>Lon</th>
+          <th>Dist (nm)</th><th>Leg spd (kt)</th><th>ETA UTC</th>
+          <th>Temp</th><th>Wind</th><th>Press</th><th>Hum</th><th>Weather</th>
+          <th>Swell</th><th>Wind wave</th><th>Current spd</th><th>Current dir</th>
         </tr>
       </thead>
       <tbody id="routeTableBody"></tbody>
@@ -467,21 +202,25 @@
          target="_blank" rel="noopener">OpenStreetMap</a> contributors
   </div>
 
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin=""
-  ></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+          crossorigin></script>
 
   <script>
     const apikey = "ceab17408b64b434ef18931a8fe62d98";
 
     let lastForecastData = null;
     let lastMarineForecast = null;
-
     let lastMarker = null;
     let markers = [];
     let routeLine = null;
+
+    // HYCOM current (if you still have this part wired)
+    let lastCurrentSpeedMs = null;
+    let lastCurrentDirDeg  = null;
+
+    // Per-leg speeds in knots; same length as markers (null = use global)
+    let legSpeeds = [];
 
     const weatherPanel = document.getElementById("weatherPanel");
     const panelContent = document.getElementById("panelContent");
@@ -515,279 +254,205 @@
 
     let consoleExpanded = false;
 
-    const map = L.map("map", { worldCopyJump: true }).setView([20, 0], 2);
-
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      minZoom: 1,
-      attribution: "© OpenStreetMap contributors"
+    const map = L.map("map",{worldCopyJump:true}).setView([20,0],2);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
+      maxZoom:19,minZoom:1,attribution:"© OpenStreetMap contributors"
     }).addTo(map);
 
-    homeBtn.onclick = () => {
-      window.location.href = "index.html";
-    };
-    contactBtn.onclick = () => {
-      window.location.href = "contact.html";
-    };
-
+    homeBtn.onclick = () => { window.location.href = "index.html"; };
+    contactBtn.onclick = () => { window.location.href = "contact.html"; };
     zoomInBtn.onclick = () => map.zoomIn();
     zoomOutBtn.onclick = () => map.zoomOut();
 
-    map.on("mousemove", (e) => {
-      const lat = e.latlng.lat.toFixed(2);
-      const lon = e.latlng.lng.toFixed(2);
-      cursorLatLon.textContent = `${lat}, ${lon}`;
+    map.on("mousemove",e=>{
+      const lat=e.latlng.lat.toFixed(2), lon=e.latlng.lng.toFixed(2);
+      cursorLatLon.textContent=`${lat}, ${lon}`;
     });
-    map.on("mouseout", () => {
-      cursorLatLon.textContent = "–";
-    });
+    map.on("mouseout",()=>{ cursorLatLon.textContent="–"; });
 
-    function addSingleMarker(lat, lon) {
-      if (lastMarker) map.removeLayer(lastMarker);
-      lastMarker = L.marker([lat, lon]).addTo(map);
+    function addSingleMarker(lat,lon){
+      if(lastMarker) map.removeLayer(lastMarker);
+      lastMarker=L.marker([lat,lon]).addTo(map);
     }
-
-    function addWaypoint(lat, lon) {
-      const m = L.marker([lat, lon]).addTo(map);
-      markers.push({ lat, lon, marker: m });
-      if (markers.length > 15) {
-        const old = markers.shift();
+    function addWaypoint(lat,lon){
+      const m=L.marker([lat,lon]).addTo(map);
+      markers.push({lat,lon,marker:m});
+      legSpeeds.push(null); // default to global
+      if(markers.length>15){
+        const old=markers.shift();
+        legSpeeds.shift();
         map.removeLayer(old.marker);
       }
-      redrawRoute();
-      updateRouteTable();
+      redrawRoute(); updateRouteTable();
+    }
+    function clearWaypoints(){
+      markers.forEach(m=>map.removeLayer(m.marker));
+      markers=[]; legSpeeds=[];
+      if(routeLine){map.removeLayer(routeLine);routeLine=null;}
+      routeTableBody.innerHTML="";
+    }
+    function redrawRoute(){
+      if(routeLine) map.removeLayer(routeLine);
+      if(!markers.length) return;
+      const latlngs=markers.map(m=>[m.lat,m.lon]);
+      routeLine=L.polyline(latlngs,{color:"#ffbb33",weight:3,opacity:0.9}).addTo(map);
     }
 
-    function clearWaypoints() {
-      markers.forEach(m => map.removeLayer(m.marker));
-      markers = [];
-      if (routeLine) {
-        map.removeLayer(routeLine);
-        routeLine = null;
-      }
-      routeTableBody.innerHTML = "";
-    }
-
-    function redrawRoute() {
-      if (routeLine) map.removeLayer(routeLine);
-      if (!markers.length) return;
-      const latlngs = markers.map(m => [m.lat, m.lon]);
-      routeLine = L.polyline(latlngs, {
-        color: "#ffbb33",
-        weight: 3,
-        opacity: 0.9
-      }).addTo(map);
-    }
-
-    enableWaypointsTop.addEventListener("change", () => {
-      if (enableWaypointsTop.checked) {
-        routeDetailsDiv.style.display = "block";
-      } else {
-        routeDetailsDiv.style.display = "none";
-        clearWaypoints();
-      }
+    enableWaypointsTop.addEventListener("change",()=>{
+      if(enableWaypointsTop.checked) routeDetailsDiv.style.display="block";
+      else{ routeDetailsDiv.style.display="none"; clearWaypoints(); }
     });
 
-    map.on("click", (e) => {
-      const { lat, lng } = e.latlng;
-      if (enableWaypointsTop.checked) {
-        addWaypoint(lat, lng);
-        fetchWeatherAndForecast(lat, lng);
-      } else {
-        addSingleMarker(lat, lng);
-        fetchWeatherAndForecast(lat, lng);
-      }
+    map.on("click",e=>{
+      const {lat,lng}=e.latlng;
+      if(enableWaypointsTop.checked){ addWaypoint(lat,lng); fetchWeatherAndForecast(lat,lng); }
+      else{ addSingleMarker(lat,lng); fetchWeatherAndForecast(lat,lng); }
     });
 
-    closePanel.onclick = () => {
-      weatherPanel.classList.remove("active");
-    };
+    closePanel.onclick = () => weatherPanel.classList.remove("active");
+    if(window.innerWidth<=600 && routeToggleMobile)
+      routeToggleMobile.style.display="inline-block";
+    routeToggleMobile?.addEventListener("click",()=>{
+      const collapsed=document.body.classList.toggle("route-collapsed");
+      routeToggleMobile.textContent=collapsed?"Expand":"Collapse";
+    });
 
-    if (window.innerWidth <= 600 && routeToggleMobile) {
-      routeToggleMobile.style.display = "inline-block";
+    function getMarineAtTime(targetTimeMs){
+      if(!lastMarineForecast || !lastMarineForecast.hourly ||
+         !Array.isArray(lastMarineForecast.hourly.time))
+        return {waveheight:null,swell_wave_height:null,wind_wave_height:null};
+      const times=lastMarineForecast.hourly.time;
+      const h=lastMarineForecast.hourly;
+      const wh=h.wave_height||[], swh=h.swell_wave_height||[], wwh=h.wind_wave_height||[];
+      let bestIdx=-1,bestDiff=Infinity;
+      for(let i=0;i<times.length;i++){
+        const tMs=Date.parse(times[i]); const diff=Math.abs(tMs-targetTimeMs);
+        if(diff<bestDiff){bestDiff=diff;bestIdx=i;}
+      }
+      if(bestIdx===-1) return {waveheight:null,swell_wave_height:null,wind_wave_height:null};
+      return {
+        waveheight:wh[bestIdx]!=null?wh[bestIdx]:null,
+        swell_wave_height:swh[bestIdx]!=null?swh[bestIdx]:null,
+        wind_wave_height:wwh[bestIdx]!=null?wwh[bestIdx]:null
+      };
     }
-    routeToggleMobile?.addEventListener("click", () => {
-      const collapsed = document.body.classList.toggle("route-collapsed");
-      routeToggleMobile.textContent = collapsed ? "Expand" : "Collapse";
-    });
 
-    function showWeatherPanel(data, lat, lon, marine) {
-      const name = data && data.name;
-      const weather = data && data.weather && data.weather[0];
-      let icon = "";
-      if (weather && weather.icon) {
-        icon = `<img src="https://openweathermap.org/img/wn/${weather.icon}@2x.png"
-                     style="width:40px;height:40px;vertical-align:middle;"> `;
+    function getForecastAtTime(targetTimeMs){
+      if(!lastForecastData || !Array.isArray(lastForecastData.list)) return null;
+      let best=null,bestDiff=Infinity;
+      for(const entry of lastForecastData.list){
+        const tMs=entry.dt*1000, diff=Math.abs(tMs-targetTimeMs);
+        if(diff<bestDiff){bestDiff=diff;best=entry;}
       }
-      const desc = weather && weather.description || "";
-      const temp = data && data.main && data.main.temp !== undefined
-        ? Math.round(data.main.temp) + " °C"
-        : "-";
-      const wind = data && data.wind && data.wind.speed !== undefined
-        ? (data.wind.speed * 1.943844).toFixed(1) + " kt"
-        : "-";
-      const hum = data && data.main && data.main.humidity !== undefined
-        ? data.main.humidity + " %"
-        : "-";
-      const pres = data && data.main && data.main.pressure !== undefined
-        ? data.main.pressure + " mb"
-        : "-";
+      return best;
+    }
 
-      let coordsInfo = "";
-      if (lat !== undefined && lon !== undefined) {
-        coordsInfo = `<div style="font-size:.82em;opacity:.78;">${lat.toFixed(4)}, ${lon.toFixed(4)}</div>`;
-      }
+    function showWeatherPanel(data,lat,lon,marine){
+      const name=data && data.name;
+      const weather=data && data.weather && data.weather[0];
+      let icon="";
+      if(weather && weather.icon)
+        icon=`<img src="https://openweathermap.org/img/wn/${weather.icon}@2x.png"
+                  style="width:40px;height:40px;vertical-align:middle;"> `;
+      const desc=weather && weather.description || "";
+      const temp=data?.main?.temp!==undefined?Math.round(data.main.temp)+" °C":"-";
+      const wind=data?.wind?.speed!==undefined?(data.wind.speed*1.943844).toFixed(1)+" kt":"-";
+      const hum=data?.main?.humidity!==undefined?data.main.humidity+" %":"-";
+      const pres=data?.main?.pressure!==undefined?data.main.pressure+" mb":"-";
 
-      let totalWave = "-";
-      let swellWave = "-";
-      let windWave = "-";
-      let hasWaves = false;
+      let coordsInfo="";
+      if(lat!==undefined && lon!==undefined)
+        coordsInfo=`<div style="font-size:.82em;opacity:.78;">${lat.toFixed(4)}, ${lon.toFixed(4)}</div>`;
 
-      if (marine && marine.hourly) {
-        const h = marine.hourly;
-        if (Array.isArray(h.wave_height) && h.wave_height.length && h.wave_height[0] != null) {
-          totalWave = h.wave_height[0].toFixed(1) + " m";
-          hasWaves = true;
+      let totalWave="-",swellWave="-",windWave="-",hasWaves=false;
+      if(marine && marine.hourly){
+        const h=marine.hourly;
+        if(Array.isArray(h.wave_height) && h.wave_height[0]!=null){
+          totalWave=h.wave_height[0].toFixed(1)+" m"; hasWaves=true;
         }
-        if (Array.isArray(h.swell_wave_height) && h.swell_wave_height.length && h.swell_wave_height[0] != null) {
-          swellWave = h.swell_wave_height[0].toFixed(1) + " m";
-          hasWaves = true;
+        if(Array.isArray(h.swell_wave_height) && h.swell_wave_height[0]!=null){
+          swellWave=h.swell_wave_height[0].toFixed(1)+" m"; hasWaves=true;
         }
-        if (Array.isArray(h.wind_wave_height) && h.wind_wave_height.length && h.wind_wave_height[0] != null) {
-          windWave = h.wind_wave_height[0].toFixed(1) + " m";
-          hasWaves = true;
+        if(Array.isArray(h.wind_wave_height) && h.wind_wave_height[0]!=null){
+          windWave=h.wind_wave_height[0].toFixed(1)+" m"; hasWaves=true;
         }
       }
-
-      let waveHtml = "";
-      if (hasWaves) {
-        waveHtml = `
+      let waveHtml="";
+      if(hasWaves){
+        waveHtml=`
           <hr style="border:none;border-top:1px solid #0003;margin:6px 0;">
           <div style="font-weight:bold;margin-bottom:3px;">Wave snapshot</div>
           <div>Total waves: <b>${totalWave}</b></div>
           <div>Swell height: <b>${swellWave}</b></div>
-          <div>Wind wave height: <b>${windWave}</b></div>
-        `;
+          <div>Wind wave height: <b>${windWave}</b></div>`;
       }
 
-      panelContent.innerHTML = `
+      panelContent.innerHTML=`
         <b style="font-size:1.05em;">${icon}${name || "Lat/Lon"}${coordsInfo}</b>
         <div>${desc}</div>
         <div>Temp: <b>${temp}</b></div>
         <div>Humidity: <b>${hum}</b></div>
         <div>Wind: <b>${wind}</b></div>
         <div>Pressure: <b>${pres}</b></div>
-        ${waveHtml}
-      `;
+        ${waveHtml}`;
       weatherPanel.classList.add("active");
     }
 
-    function getMarineAtTime(targetTimeMs) {
-      if (!lastMarineForecast || !lastMarineForecast.hourly || !Array.isArray(lastMarineForecast.hourly.time)) {
-        return { waveheight: null, swell_wave_height: null, wind_wave_height: null };
-      }
-      const times = lastMarineForecast.hourly.time;
-      const wh = lastMarineForecast.hourly.wave_height || [];
-      const swh = lastMarineForecast.hourly.swell_wave_height || [];
-      const wwh = lastMarineForecast.hourly.wind_wave_height || [];
-      let bestIdx = -1;
-      let bestDiff = Infinity;
-      for (let i = 0; i < times.length; i++) {
-        const tMs = Date.parse(times[i]);
-        const diff = Math.abs(tMs - targetTimeMs);
-        if (diff < bestDiff) {
-          bestDiff = diff;
-          bestIdx = i;
+    function renderForecastBar(){
+      forecastItems.innerHTML="";
+      if(!lastForecastData || !Array.isArray(lastForecastData.list)) return;
+      forecastBar.style.display="block";
+      toggleForecastBtn.textContent="Hide forecast";
+
+      const stepHours=parseInt(forecastStepSelect.value,10);
+      const list=lastForecastData.list;
+      const baseStep=3;
+      const indicesStep=Math.max(1,Math.round(stepHours/baseStep));
+
+      for(let i=0;i<list.length;i+=indicesStep){
+        const entry=list[i];
+        const dtMs=entry.dt*1000, d=new Date(dtMs);
+        const hour=d.getUTCHours().toString().padStart(2,"0");
+        const day=d.getUTCDate().toString().padStart(2,"0");
+        const month=(d.getUTCMonth()+1).toString().padStart(2,"0");
+
+        const temp=entry.main?.temp!==undefined?Math.round(entry.main.temp)+" °C":"-";
+        let wind="-";
+        if(entry.wind?.speed!==undefined){
+          const wms=entry.wind.speed, wkn=wms*1.943844;
+          wind=wkn.toFixed(1)+" kt";
         }
-      }
-      if (bestIdx === -1) {
-        return { waveheight: null, swell_wave_height: null, wind_wave_height: null };
-      }
-      return {
-        waveheight: wh[bestIdx] ?? null,
-        swell_wave_height: swh[bestIdx] ?? null,
-        wind_wave_height: wwh[bestIdx] ?? null
-      };
-    }
+        const hum=entry.main?.humidity!==undefined?entry.main.humidity+" %":"-";
+        const pres=entry.main?.pressure!==undefined?entry.main.pressure+" mb":"-";
 
-    function getForecastAtTime(targetTimeMs) {
-      if (!lastForecastData || !Array.isArray(lastForecastData.list)) return null;
-      let best = null;
-      let bestDiff = Infinity;
-      for (const entry of lastForecastData.list) {
-        const tMs = entry.dt * 1000;
-        const diff = Math.abs(tMs - targetTimeMs);
-        if (diff < bestDiff) {
-          bestDiff = diff;
-          best = entry;
+        const rain=entry.rain?.["3h"]!==undefined?entry.rain["3h"]:0;
+        const snow=entry.snow?.["3h"]!==undefined?entry.snow["3h"]:0;
+        const precipTotal=rain+snow;
+        const precipText=precipTotal>0?precipTotal.toFixed(1)+" mm":"0 mm";
+
+        const weather=entry.weather && entry.weather[0];
+        const desc=weather?.description || "";
+        const iconCode=weather?.icon;
+        const iconUrl=iconCode?`https://openweathermap.org/img/wn/${iconCode}.png`:"";
+
+        const marine=getMarineAtTime(dtMs);
+        let swell="-", windWave="-";
+        if(marine?.swell_wave_height!=null){
+          const mVal=marine.swell_wave_height, ftVal=mVal*3.28084;
+          swell=`${mVal.toFixed(1)} m / ${ftVal.toFixed(1)} ft`;
         }
-      }
-      return best;
-    }
-
-    function renderForecastBar() {
-      forecastItems.innerHTML = "";
-      if (!lastForecastData || !Array.isArray(lastForecastData.list)) return;
-
-      forecastBar.style.display = "block";
-      toggleForecastBtn.textContent = "Hide forecast";
-
-      const stepHours = parseInt(forecastStepSelect.value, 10);
-      const list = lastForecastData.list;
-      const baseStep = 3;
-      const indicesStep = Math.max(1, Math.round(stepHours / baseStep));
-
-      for (let i = 0; i < list.length; i += indicesStep) {
-        const entry = list[i];
-        const dtMs = entry.dt * 1000;
-        const d = new Date(dtMs);
-        const hour = d.getUTCHours().toString().padStart(2, "0");
-        const day = d.getUTCDate().toString().padStart(2, "0");
-        const month = (d.getUTCMonth() + 1).toString().padStart(2, "0");
-
-        const temp = entry.main && entry.main.temp !== undefined
-          ? Math.round(entry.main.temp) + " °C"
-          : "-";
-        let wind = "-";
-        if (entry.wind && entry.wind.speed !== undefined) {
-          const wms = entry.wind.speed;
-          const wkn = wms * 1.943844;
-          wind = wkn.toFixed(1) + " kt";
-        }
-        const hum = entry.main && entry.main.humidity !== undefined ? entry.main.humidity + " %" : "-";
-        const pres = entry.main && entry.main.pressure !== undefined ? entry.main.pressure + " mb" : "-";
-
-        const rain = entry.rain && entry.rain["3h"] !== undefined ? entry.rain["3h"] : 0;
-        const snow = entry.snow && entry.snow["3h"] !== undefined ? entry.snow["3h"] : 0;
-        const precipTotal = rain + snow;
-        const precipText = precipTotal > 0 ? precipTotal.toFixed(1) + " mm" : "0 mm";
-
-        const weather = entry.weather && entry.weather[0];
-        const desc = weather && weather.description || "";
-        const iconCode = weather && weather.icon;
-        const iconUrl = iconCode ? `https://openweathermap.org/img/wn/${iconCode}.png` : "";
-
-        const marine = getMarineAtTime(dtMs);
-        let swell = "-";
-        let windWave = "-";
-        if (marine && marine.swell_wave_height != null) {
-          const mVal = marine.swell_wave_height;
-          const ftVal = mVal * 3.28084;
-          swell = `${mVal.toFixed(1)} m / ${ftVal.toFixed(1)} ft`;
-        }
-        if (marine && marine.wind_wave_height != null) {
-          const mVal = marine.wind_wave_height;
-          const ftVal = mVal * 3.28084;
-          windWave = `${mVal.toFixed(1)} m / ${ftVal.toFixed(1)} ft`;
+        if(marine?.wind_wave_height!=null){
+          const mVal=marine.wind_wave_height, ftVal=mVal*3.28084;
+          windWave=`${mVal.toFixed(1)} m / ${ftVal.toFixed(1)} ft`;
         }
 
-        const item = document.createElement("div");
-        item.className = "forecast-item";
-        item.innerHTML = `
+        const item=document.createElement("div");
+        item.className="forecast-item";
+        item.innerHTML=`
           <div class="forecast-item-time">${day}/${month} ${hour}:00Z</div>
           <div class="forecast-item-temp">${temp}</div>
           <div class="forecast-item-line">
-            ${iconUrl ? `<img src="${iconUrl}" alt="" class="forecast-item-icon">` : ""}
+            ${iconUrl?`<img src="${iconUrl}" alt="" class="forecast-item-icon">`:""}
             <span>${desc}</span>
           </div>
           <div class="forecast-item-line">Wind: ${wind}</div>
@@ -795,114 +460,104 @@
           <div class="forecast-item-line">Press: ${pres}</div>
           <div class="forecast-item-line">Precip: ${precipText}</div>
           <div class="forecast-item-line">Swell: ${swell}</div>
-          <div class="forecast-item-line">Wind wave: ${windWave}</div>
-        `;
+          <div class="forecast-item-line">Wind wave: ${windWave}</div>`;
         forecastItems.appendChild(item);
       }
     }
 
-    forecastStepSelect.addEventListener("change", renderForecastBar);
-
-    function toggleForecast() {
-      if (!forecastBar.style.display || forecastBar.style.display === "none") {
-        if (lastForecastData && Array.isArray(lastForecastData.list)) {
-          forecastBar.style.display = "block";
-          toggleForecastBtn.textContent = "Hide forecast";
+    forecastStepSelect.addEventListener("change",renderForecastBar);
+    function toggleForecast(){
+      if(!forecastBar.style.display || forecastBar.style.display==="none"){
+        if(lastForecastData && Array.isArray(lastForecastData.list)){
+          forecastBar.style.display="block";
+          toggleForecastBtn.textContent="Hide forecast";
         }
-      } else {
-        forecastBar.style.display = "none";
-        toggleForecastBtn.textContent = "Show forecast";
+      }else{
+        forecastBar.style.display="none";
+        toggleForecastBtn.textContent="Show forecast";
       }
     }
+    toggleForecastBtn.onclick=toggleForecast;
+    hideForecastBtn.onclick=toggleForecast;
 
-    toggleForecastBtn.onclick = toggleForecast;
-    hideForecastBtn.onclick = toggleForecast;
-
-    function distanceNm(lat1, lon1, lat2, lon2) {
-      const R = 6371e3;
-      const toRad = x => x * Math.PI / 180;
-      const φ1 = toRad(lat1);
-      const φ2 = toRad(lat2);
-      const dφ = toRad(lat2 - lat1);
-      const dλ = toRad(lon2 - lon1);
-      const a = Math.sin(dφ/2)**2 +
-        Math.cos(φ1)*Math.cos(φ2)*Math.sin(dλ/2)**2;
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return (R * c) / 1852;
+    function distanceNm(lat1,lon1,lat2,lon2){
+      const R=6371e3,toRad=x=>x*Math.PI/180;
+      const φ1=toRad(lat1), φ2=toRad(lat2);
+      const dφ=toRad(lat2-lat1), dλ=toRad(lon2-lon1);
+      const a=Math.sin(dφ/2)**2+Math.cos(φ1)*Math.cos(φ2)*Math.sin(dλ/2)**2;
+      const c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+      return (R*c)/1852;
     }
 
-    function updateRouteTable() {
-      routeTableBody.innerHTML = "";
-      if (!markers.length || !lastForecastData || !Array.isArray(lastForecastData.list)) return;
+    function updateRouteTable(){
+      routeTableBody.innerHTML="";
+      if(!markers.length || !lastForecastData || !Array.isArray(lastForecastData.list)) return;
 
-      const speedKnots = parseFloat(vesselSpeedInput.value) || 0;
-      const depStr = departureUtcInput.value;
-      if (!speedKnots || !depStr) return;
+      const globalSpeed=parseFloat(vesselSpeedInput.value)||0;
+      const depStr=departureUtcInput.value;
+      if(!globalSpeed || !depStr) return;
 
-      const depTime = new Date(depStr + "Z");
-      let cumulativeHours = 0;
-      let totalDistNm = 0;
-      let swellSum = 0, swellCount = 0;
-      let windWaveSum = 0, windWaveCount = 0;
+      const depTime=new Date(depStr+"Z");
+      let cumulativeHours=0,totalDistNm=0;
+      let swellSum=0,swellCount=0,windWaveSum=0,windWaveCount=0;
 
-      markers.forEach((m, i) => {
-        let distDelta = 0;
-        if (i > 0) {
-          const prev = markers[i - 1];
-          distDelta = distanceNm(prev.lat, prev.lon, m.lat, m.lon);
-          totalDistNm += distDelta;
+      markers.forEach((m,i)=>{
+        let distDelta=0;
+        if(i>0){
+          const prev=markers[i-1];
+          distDelta=distanceNm(prev.lat,prev.lon,m.lat,m.lon);
+          totalDistNm+=distDelta;
         }
-        const hoursSeg = distDelta / speedKnots || 0;
+
+        let legSpeed = legSpeeds[i];
+        if (legSpeed == null || legSpeed <= 0) legSpeed = globalSpeed;
+
+        const hoursSeg = distDelta && legSpeed ? distDelta / legSpeed : 0;
         cumulativeHours += hoursSeg;
-        const etaMs = depTime.getTime() + cumulativeHours * 3600 * 1000;
-        const eta = new Date(etaMs);
-        const etaStr = `${eta.getUTCDate().toString().padStart(2,"0")}.${
-          (eta.getUTCMonth()+1).toString().padStart(2,"0")
-        }.${eta.getUTCFullYear()} ${
-          eta.getUTCHours().toString().padStart(2,"0")
-        }:${eta.getUTCMinutes().toString().padStart(2,"0")}Z`;
 
-        const fcEntry = getForecastAtTime(etaMs);
-        let temp = "", wind = "", pres = "", hum = "", desc = "", swell = "", windWave = "";
+        const etaMs=depTime.getTime()+cumulativeHours*3600*1000;
+        const eta=new Date(etaMs);
+        const etaStr=`${eta.getUTCDate().toString().padStart(2,"0")}.${
+          (eta.getUTCMonth()+1).toString().padStart(2,"0")}.${eta.getFullYear()} ${
+          eta.getUTCHours().toString().padStart(2,"0")}:${
+          eta.getUTCMinutes().toString().padStart(2,"0")}Z`;
 
-        if (fcEntry) {
-          if (fcEntry.main) {
-            if (fcEntry.main.temp !== undefined) temp = Math.round(fcEntry.main.temp) + " °C";
-            if (fcEntry.main.humidity !== undefined) hum = fcEntry.main.humidity + " %";
-            if (fcEntry.main.pressure !== undefined) pres = fcEntry.main.pressure + " mb";
+        const fcEntry=getForecastAtTime(etaMs);
+        let temp="",wind="",pres="",hum="",desc="",swell="",windWave="";
+        let curSpeedText="",curDirText="";
+
+        if(fcEntry){
+          if(fcEntry.main){
+            if(fcEntry.main.temp!==undefined) temp=Math.round(fcEntry.main.temp)+" °C";
+            if(fcEntry.main.humidity!==undefined) hum=fcEntry.main.humidity+" %";
+            if(fcEntry.main.pressure!==undefined) pres=fcEntry.main.pressure+" mb";
           }
-          if (fcEntry.wind && fcEntry.wind.speed !== undefined) {
-            const wms = fcEntry.wind.speed;
-            const wkn = wms * 1.943844;
-            wind = wkn.toFixed(1) + " kt";
+          if(fcEntry.wind?.speed!==undefined){
+            const wms=fcEntry.wind.speed, wkn=wms*1.943844;
+            wind=wkn.toFixed(1)+" kt";
           }
-          if (fcEntry.weather && fcEntry.weather[0]) {
-            desc = fcEntry.weather[0].description || "";
-          }
+          if(fcEntry.weather && fcEntry.weather[0]) desc=fcEntry.weather[0].description||"";
         }
 
-        const marine = getMarineAtTime(etaMs);
-        if (marine && marine.swell_wave_height != null) {
-          const mVal = marine.swell_wave_height;
-          const ftVal = mVal * 3.28084;
-          swell = `${mVal.toFixed(1)} m / ${ftVal.toFixed(1)} ft`;
-          swellSum += mVal;
-          swellCount++;
+        const marine=getMarineAtTime(etaMs);
+        if(marine?.swell_wave_height!=null){
+          const mVal=marine.swell_wave_height, ftVal=mVal*3.28084;
+          swell=`${mVal.toFixed(1)} m / ${ftVal.toFixed(1)} ft`;
+          swellSum+=mVal; swellCount++;
         }
-        if (marine && marine.wind_wave_height != null) {
-          const mVal = marine.wind_wave_height;
-          const ftVal = mVal * 3.28084;
-          windWave = `${mVal.toFixed(1)} m / ${ftVal.toFixed(1)} ft`;
-          windWaveSum += mVal;
-          windWaveCount++;
+        if(marine?.wind_wave_height!=null){
+          const mVal=marine.wind_wave_height, ftVal=mVal*3.28084;
+          windWave=`${mVal.toFixed(1)} m / ${ftVal.toFixed(1)} ft`;
+          windWaveSum+=mVal; windWaveCount++;
         }
 
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${i + 1}</td>
+        const tr=document.createElement("tr");
+        tr.innerHTML=`
+          <td>${i+1}</td>
           <td><input class="wp-lat-input" data-index="${i}" value="${m.lat.toFixed(3)}" style="width:70px;"></td>
           <td><input class="wp-lon-input" data-index="${i}" value="${m.lon.toFixed(3)}" style="width:80px;"></td>
-          <td>${distDelta ? distDelta.toFixed(1) : "0.0"}</td>
+          <td>${distDelta?distDelta.toFixed(1):"0.0"}</td>
+          <td><input class="wp-speed-input" data-index="${i}" value="${legSpeed.toFixed(1)}" style="width:70px;"></td>
           <td>${etaStr}</td>
           <td>${temp}</td>
           <td>${wind}</td>
@@ -911,172 +566,139 @@
           <td>${desc}</td>
           <td>${swell}</td>
           <td>${windWave}</td>
-        `;
+          <td>${curSpeedText}</td>
+          <td>${curDirText}</td>`;
         routeTableBody.appendChild(tr);
       });
 
-      const avgSwellM = swellCount ? swellSum / swellCount : 0;
-      const avgWindWaveM = windWaveCount ? windWaveSum / windWaveCount : 0;
-      const avgSwell = swellCount
-        ? `${avgSwellM.toFixed(1)} m / ${(avgSwellM * 3.28084).toFixed(1)} ft`
-        : "-";
-      const avgWindWave = windWaveCount
-        ? `${avgWindWaveM.toFixed(1)} m / ${(avgWindWaveM * 3.28084).toFixed(1)} ft`
-        : "-";
+      const avgSwellM=swellCount?swellSum/swellCount:0;
+      const avgWindWaveM=windWaveCount?windWaveSum/windWaveCount:0;
+      const avgSwell=swellCount
+        ?`${avgSwellM.toFixed(1)} m / ${(avgSwellM*3.28084).toFixed(1)} ft`:"-";
+      const avgWindWave=windWaveCount
+        ?`${avgWindWaveM.toFixed(1)} m / ${(avgWindWaveM*3.28084).toFixed(1)} ft`:"-";
 
-      const totalRow = document.createElement("tr");
-      totalRow.style.fontWeight = "600";
-      totalRow.innerHTML = `
+      const avgSpeed = totalDistNm && cumulativeHours ? (totalDistNm / cumulativeHours) : 0;
+
+      const totalRow=document.createElement("tr");
+      totalRow.style.fontWeight="600";
+      totalRow.innerHTML=`
         <td colspan="3" style="text-align:right;">Total distance</td>
         <td>${totalDistNm.toFixed(1)}</td>
+        <td>${avgSpeed ? avgSpeed.toFixed(1) + " kt avg" : "-"}</td>
         <td colspan="3" style="text-align:right;">Avg swell</td>
         <td colspan="2">${avgSwell}</td>
         <td style="text-align:right;">Avg wind wave</td>
         <td colspan="2">${avgWindWave}</td>
-      `;
+        <td colspan="2"></td>`;
       routeTableBody.appendChild(totalRow);
     }
 
-    departureGoBtn.addEventListener("click", updateRouteTable);
-    routeResetBtn.addEventListener("click", clearWaypoints);
+    departureGoBtn.addEventListener("click",updateRouteTable);
+    routeResetBtn.addEventListener("click",clearWaypoints);
+    routeExpandBtn.addEventListener("click",()=>{
+      consoleExpanded=!consoleExpanded;
+      if(consoleExpanded){ routeDetailsDiv.style.maxHeight="60vh"; routeExpandBtn.textContent="Collapse"; }
+      else{ routeDetailsDiv.style.maxHeight="110px"; routeExpandBtn.textContent="Expand"; }
+    });
 
-    routeExpandBtn.addEventListener("click", () => {
-      consoleExpanded = !consoleExpanded;
-      if (consoleExpanded) {
-        routeDetailsDiv.style.maxHeight = "60vh";
-        routeExpandBtn.textContent = "Collapse";
-      } else {
-        routeDetailsDiv.style.maxHeight = "110px";
-        routeExpandBtn.textContent = "Expand";
+    routeTableBody.addEventListener("change",e=>{
+      const t=e.target;
+
+      if(t.classList.contains("wp-speed-input")){
+        const idx=parseInt(t.dataset.index,10);
+        if(!isNaN(idx)){
+          const v=parseFloat(t.value);
+          legSpeeds[idx]=isNaN(v)?null:v;
+          updateRouteTable();
+        }
+        return;
       }
+
+      if(!t.classList.contains("wp-lat-input") && !t.classList.contains("wp-lon-input")) return;
+      const idx=parseInt(t.dataset.index,10);
+      if(isNaN(idx) || !markers[idx]) return;
+      const row=t.closest("tr");
+      const latInput=row.querySelector(".wp-lat-input");
+      const lonInput=row.querySelector(".wp-lon-input");
+      const newLat=parseFloat(latInput.value);
+      const newLon=parseFloat(lonInput.value);
+      if(isNaN(newLat) || isNaN(newLon)) return;
+      markers[idx].lat=newLat; markers[idx].lon=newLon;
+      markers[idx].marker.setLatLng([newLat,newLon]);
+      redrawRoute(); updateRouteTable();
     });
 
-    routeTableBody.addEventListener("change", (e) => {
-      const t = e.target;
-      if (!t.classList.contains("wp-lat-input") && !t.classList.contains("wp-lon-input")) return;
-      const idx = parseInt(t.dataset.index, 10);
-      if (isNaN(idx) || !markers[idx]) return;
-
-      const row = t.closest("tr");
-      const latInput = row.querySelector(".wp-lat-input");
-      const lonInput = row.querySelector(".wp-lon-input");
-      const newLat = parseFloat(latInput.value);
-      const newLon = parseFloat(lonInput.value);
-      if (isNaN(newLat) || isNaN(newLon)) return;
-
-      markers[idx].lat = newLat;
-      markers[idx].lon = newLon;
-      markers[idx].marker.setLatLng([newLat, newLon]);
-      redrawRoute();
-      updateRouteTable();
-    });
-
-    async function fetchWeatherAndForecast(lat, lon) {
-      try {
-        const weatherUrl =
+    async function fetchWeatherAndForecast(lat,lon){
+      try{
+        const weatherUrl=
           `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apikey}&units=metric`;
-        const forecastUrl =
+        const forecastUrl=
           `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apikey}&units=metric`;
-        const marineUrl =
-          `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}` +
-          `&hourly=wave_height,swell_wave_height,wind_wave_height&length=120`;
+        const marineUrl=
+          `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}`+
+          `&hourly=wave_height,swell_wave_height,wind_wave_height&length=120&timezone=UTC`;
 
-        const [weatherRes, forecastRes, marineRes] = await Promise.all([
+        const [weatherRes,forecastRes,marineRes] = await Promise.all([
           fetch(weatherUrl),
           fetch(forecastUrl),
           fetch(marineUrl)
         ]);
 
-        const weatherData = await weatherRes.json();
-        lastForecastData = forecastRes.ok ? await forecastRes.json() : null;
-        lastMarineForecast = marineRes.ok ? await marineRes.json() : null;
+        const weatherData=await weatherRes.json();
+        lastForecastData=forecastRes.ok?await forecastRes.json():null;
+        lastMarineForecast=marineRes.ok?await marineRes.json():null;
 
-        showWeatherPanel(weatherData, lat, lon, lastMarineForecast);
+        showWeatherPanel(weatherData,lat,lon,lastMarineForecast);
         renderForecastBar();
-        if (enableWaypointsTop.checked) {
-          updateRouteTable();
-        }
-      } catch (err) {
+        if(enableWaypointsTop.checked) updateRouteTable();
+      }catch(err){
         alert("Error fetching weather data. Please try again.");
         console.error(err);
       }
     }
 
-    placeGo.onclick = handlePlaceSearch;
-    placeInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        handlePlaceSearch();
-      }
+    placeGo.onclick=handlePlaceSearch;
+    placeInput.addEventListener("keypress",e=>{
+      if(e.key==="Enter"){ e.preventDefault(); handlePlaceSearch(); }
     });
-
-    async function handlePlaceSearch() {
-      const place = placeInput.value.trim();
-      if (!place) return;
-      try {
-        const url =
-          `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(place)}` +
+    async function handlePlaceSearch(){
+      const place=placeInput.value.trim(); if(!place) return;
+      try{
+        const url=
+          `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(place)}`+
           `&appid=${apikey}&units=metric`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (!res.ok || !data.coord) {
-          alert("Place not found or API error");
-          console.error("Place search error:", res.status, data);
-          return;
-        }
-        const lat = data.coord.lat;
-        const lon = data.coord.lon;
-        map.setView([lat, lon], 4);
-
-        if (enableWaypointsTop.checked) {
-          addWaypoint(lat, lon);
-        } else {
-          addSingleMarker(lat, lon);
-        }
-
-        await fetchWeatherAndForecast(lat, lon);
-      } catch (err) {
+        const res=await fetch(url); const data=await res.json();
+        if(!res.ok || !data.coord){ alert("Place not found or API error"); return; }
+        const lat=data.coord.lat, lon=data.coord.lon;
+        map.setView([lat,lon],4);
+        if(enableWaypointsTop.checked) addWaypoint(lat,lon);
+        else addSingleMarker(lat,lon);
+        await fetchWeatherAndForecast(lat,lon);
+      }catch(err){
         alert("Error fetching place weather. Please try again.");
         console.error(err);
       }
     }
 
-    latLonGo.onclick = handleLatLonSearch;
-    latLonInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        handleLatLonSearch();
-      }
+    latLonGo.onclick=handleLatLonSearch;
+    latLonInput.addEventListener("keypress",e=>{
+      if(e.key==="Enter"){ e.preventDefault(); handleLatLonSearch(); }
     });
-
-    async function handleLatLonSearch() {
-      const value = latLonInput.value.trim();
-      const pattern =
+    async function handleLatLonSearch(){
+      const value=latLonInput.value.trim();
+      const pattern=
         /^(\d{1,2})\s+(\d{1,2}(\.\d+)?)\s*([NSns]),\s*(\d{1,3})\s+(\d{1,2}(\.\d+)?)\s*([EWew])$/;
-      const match = value.match(pattern);
-      if (!match) {
-        alert("Format: 37 47.5 N, 122 25.2 W");
-        return;
-      }
-      let latDeg = parseFloat(match[1]);
-      let latMin = parseFloat(match[2]);
-      let latDir = match[4].toUpperCase();
-      let lonDeg = parseFloat(match[5]);
-      let lonMin = parseFloat(match[6]);
-      let lonDir = match[8].toUpperCase();
-
-      let lat = latDeg + latMin / 60;
-      if (latDir === "S") lat = -lat;
-      let lon = lonDeg + lonMin / 60;
-      if (lonDir === "W") lon = -lon;
-
-      map.setView([lat, lon], 4);
-      if (enableWaypointsTop.checked) {
-        addWaypoint(lat, lon);
-      } else {
-        addSingleMarker(lat, lon);
-      }
-      fetchWeatherAndForecast(lat, lon);
+      const match=value.match(pattern);
+      if(!match){ alert("Format: 37 47.5 N, 122 25.2 W"); return; }
+      let latDeg=parseFloat(match[1]), latMin=parseFloat(match[2]), latDir=match[4].toUpperCase();
+      let lonDeg=parseFloat(match[5]), lonMin=parseFloat(match[6]), lonDir=match[8].toUpperCase();
+      let lat=latDeg+latMin/60; if(latDir==="S") lat=-lat;
+      let lon=lonDeg+lonMin/60; if(lonDir==="W") lon=-lon;
+      map.setView([lat,lon],4);
+      if(enableWaypointsTop.checked) addWaypoint(lat,lon);
+      else addSingleMarker(lat,lon);
+      fetchWeatherAndForecast(lat,lon);
     }
   </script>
 </body>
