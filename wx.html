@@ -158,6 +158,10 @@
         style="padding:3px 7px;border-radius:6px;border:1px solid #22c55e88;background:#14532d;color:#ecfdf5;cursor:pointer;font-size:0.78rem;">
         Expand
       </button>
+      <button id="downloadPdfBtn"
+        style="padding:3px 7px;border-radius:6px;border:1px solid #4b5563;background:#0f172a;color:#f9fafb;cursor:pointer;font-size:0.78rem;">
+        Download PDF
+      </button>
     </div>
     <table>
       <thead>
@@ -206,6 +210,11 @@
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
           crossorigin></script>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.3/jspdf.plugin.autotable.min.js"
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
   <script>
     const apikey = "ceab17408b64b434ef18931a8fe62d98";
 
@@ -215,11 +224,8 @@
     let markers = [];
     let routeLine = null;
 
-    // HYCOM current (if you still have this part wired)
     let lastCurrentSpeedMs = null;
     let lastCurrentDirDeg  = null;
-
-    // Per-leg speeds in knots; same length as markers (null = use global)
     let legSpeeds = [];
 
     const weatherPanel = document.getElementById("weatherPanel");
@@ -251,6 +257,7 @@
     const contactBtn = document.getElementById("contactBtn");
     const zoomInBtn = document.getElementById("zoomInBtn");
     const zoomOutBtn = document.getElementById("zoomOutBtn");
+    const downloadPdfBtn = document.getElementById("downloadPdfBtn");
 
     let consoleExpanded = false;
 
@@ -277,7 +284,7 @@
     function addWaypoint(lat,lon){
       const m=L.marker([lat,lon]).addTo(map);
       markers.push({lat,lon,marker:m});
-      legSpeeds.push(null); // default to global
+      legSpeeds.push(null);
       if(markers.length>15){
         const old=markers.shift();
         legSpeeds.shift();
@@ -629,6 +636,152 @@
       redrawRoute(); updateRouteTable();
     });
 
+    // PDF export with NavForce logo + wordmark watermark
+    downloadPdfBtn.addEventListener("click", () => {
+      if (!routeTableBody.rows.length) {
+        alert("No route data to export.");
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" }); // [web:9]
+
+      const canvas = document.createElement("canvas");
+      canvas.width = 600;
+      canvas.height = 300;
+      const ctx = canvas.getContext("2d");
+
+      const img = new Image();
+      img.crossOrigin = "Anonymous";
+
+      img.onload = function () {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.globalAlpha = 0.10;
+
+        const logoW = 220;
+        const logoH = 220;
+        const logoX = 40;
+        const logoY = (canvas.height - logoH) / 2;
+        ctx.drawImage(img, logoX, logoY, logoW, logoH);
+
+        ctx.font = "bold 52px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+        ctx.fillStyle = "#0b5fad";
+        ctx.fillText("Nav", logoX + logoW + 30, logoY + 110);
+
+        ctx.font = "bold 52px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText("Force", logoX + logoW + 30, logoY + 170);
+
+        ctx.globalAlpha = 1.0;
+        img.src("navforce.png")
+        const canvasDataUrl = canvas.toDataURL("image/png");
+        doc.addImage(canvasDataUrl, "PNG", 40, 40, 220, 110); // [web:2]
+
+        doc.setFontSize(14);
+        doc.setFont(undefined, "bold");
+        doc.text("NavForce Route Console Report", 20, 20);
+        
+        doc.setFontSize(9);
+        doc.setFont(undefined, "normal");
+        const now = new Date();
+        doc.text(`Generated: ${now.toUTCString()}`, 20, 28);
+
+        const table = routeTableBody.closest("table");
+        const headCells = Array.from(table.querySelectorAll("thead tr th")).map(th =>
+          th.textContent.trim()
+        );
+
+        const bodyRows = [];
+        Array.from(routeTableBody.querySelectorAll("tr")).forEach(tr => {
+          const cells = Array.from(tr.children).map(td => {
+            const input = td.querySelector("input");
+            return input ? input.value : td.textContent.trim();
+          });
+          bodyRows.push(cells);
+        });
+
+        doc.autoTable({
+          head: [headCells],
+          body: bodyRows,
+          startY: 35,
+          theme: "grid",
+          styles: {
+            fontSize: 7,
+            cellPadding: 2,
+            textColor: [0, 0, 0],
+          },
+          headStyles: {
+            fillColor: [15, 23, 42],
+            textColor: [255, 255, 255],
+            fontStyle: "bold",
+          },
+          margin: { left: 10, right: 10 },
+          didDrawPage: function(data) {
+            const pageSize = doc.internal.pageSize;
+            const pageHeight = pageSize.getHeight();
+            doc.setFontSize(7);
+            doc.text(
+              `Page ${data.pageNumber}`,
+              pageSize.getWidth() / 2,
+              pageHeight - 5,
+              { align: "center" }
+            );
+          }
+        }); // [web:9][web:11]
+
+        doc.save("route-console.pdf");
+      };
+
+      img.onerror = function() {
+        console.warn("Logo failed to load, exporting without watermark.");
+        exportPdfWithoutWatermark();
+      };
+
+      // Replace with your actual hosted NavForce logo URL
+      img.src = "https://agi-prod-file-upload-public-main-use1.s3.amazonaws.com/d2cae29d-bcd6-4e50-afa8-5130c39b17b2";
+    });
+
+    function exportPdfWithoutWatermark() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" }); // [web:7]
+
+      doc.setFontSize(14);
+      doc.setFont(undefined, "bold");
+      doc.text("Route Console Report", 20, 20);
+
+      doc.setFontSize(9);
+      doc.setFont(undefined, "normal");
+      const now = new Date();
+      doc.text(`Generated: ${now.toUTCString()}`, 20, 28);
+
+      const table = routeTableBody.closest("table");
+      const headCells = Array.from(table.querySelectorAll("thead tr th")).map(th =>
+        th.textContent.trim()
+      );
+
+      const bodyRows = [];
+      Array.from(routeTableBody.querySelectorAll("tr")).forEach(tr => {
+        const cells = Array.from(tr.children).map(td => {
+          const input = td.querySelector("input");
+          return input ? input.value : td.textContent.trim();
+        });
+        bodyRows.push(cells);
+      });
+
+      doc.autoTable({
+        head: [headCells],
+        body: bodyRows,
+        startY: 35,
+        theme: "grid",
+        styles: { fontSize: 7, cellPadding: 2 },
+        headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255] },
+        margin: { left: 10, right: 10 },
+      }); // [web:9]
+
+      doc.save("route-console.pdf");
+    }
+
     async function fetchWeatherAndForecast(lat,lon){
       try{
         const weatherUrl=
@@ -643,7 +796,7 @@
           fetch(weatherUrl),
           fetch(forecastUrl),
           fetch(marineUrl)
-        ]);
+        ]); // [web:2][web:3]
 
         const weatherData=await weatherRes.json();
         lastForecastData=forecastRes.ok?await forecastRes.json():null;
