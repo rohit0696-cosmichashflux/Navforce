@@ -28,7 +28,7 @@
     }
     .top-bar button { cursor:pointer; font-weight:600; background:#1f2937; color:#f9fafb; }
     .top-bar input { background:#e5f4ff; color:#111827; }
-    #placeInput,#latLonInput { min-width:120px; max-width:180px; }
+    #placeInput { min-width:120px; max-width:180px; }
     #cursorLatLon {
       font-family:monospace; padding:5px 8px; background:#e5f4ff; color:#111827;
       border-radius:7px; border:1px solid #4b5563; min-width:130px; text-align:center;
@@ -96,7 +96,7 @@
 
     @media (max-width:600px){
       .top-bar{font-size:0.78rem;padding:4px;gap:4px;}
-      #placeInput,#latLonInput{min-width:100px;max-width:130px;}
+      #placeInput{min-width:100px;max-width:130px;}
       .weather-panel{max-width:80vw;right:4px;}
       .route-details{top:90px;width:100vw;max-height:40vh;font-size:0.75rem;padding:4px;}
       .route-details>div{display:flex;flex-wrap:wrap;gap:4px;}
@@ -119,8 +119,28 @@
   <div class="top-bar">
     <input id="placeInput" placeholder="Place name" />
     <button id="placeGo">Go</button>
-    <input id="latLonInput" placeholder="37 47.5 N, 122 25.2 W" />
-    <button id="latLonGo">Go</button>
+
+    <!-- NEW: small Lat/Lon boxes: deg + min + N/S, E/W -->
+    <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+      <!-- Lat -->
+      <input type="number" id="latDegTop"  placeholder="Lat°"  style="width:52px;font-size:0.8rem;">
+      <input type="number" id="latMinTop"  placeholder="'"     step="0.01" style="width:52px;font-size:0.8rem;">
+      <select id="latHemTop" style="width:46px;font-size:0.8rem;">
+        <option value="N">N</option>
+        <option value="S">S</option>
+      </select>
+
+      <!-- Lon -->
+      <input type="number" id="lonDegTop"  placeholder="Lon°"  style="width:58px;font-size:0.8rem;">
+      <input type="number" id="lonMinTop"  placeholder="'"     step="0.01" style="width:58px;font-size:0.8rem;">
+      <select id="lonHemTop" style="width:46px;font-size:0.8rem;">
+        <option value="E">E</option>
+        <option value="W">W</option>
+      </select>
+
+      <button id="latLonGo" style="font-size:0.8rem;padding:4px 6px;">Go</button>
+    </div>
+
     <span id="cursorLatLon">–</span>
     <label class="top-waypoints-toggle">
       <input type="checkbox" id="enableWaypointsTop" /> Enable Waypoints Drops
@@ -240,8 +260,6 @@
 
     const placeInput = document.getElementById("placeInput");
     const placeGo = document.getElementById("placeGo");
-    const latLonInput = document.getElementById("latLonInput");
-    const latLonGo = document.getElementById("latLonGo");
     const cursorLatLon = document.getElementById("cursorLatLon");
 
     const enableWaypointsTop = document.getElementById("enableWaypointsTop");
@@ -258,6 +276,7 @@
     const zoomInBtn = document.getElementById("zoomInBtn");
     const zoomOutBtn = document.getElementById("zoomOutBtn");
     const downloadPdfBtn = document.getElementById("downloadPdfBtn");
+    const latLonGo = document.getElementById("latLonGo");
 
     let consoleExpanded = false;
 
@@ -360,7 +379,7 @@
       let icon="";
       if(weather && weather.icon)
         icon=`<img src="https://openweathermap.org/img/wn/${weather.icon}@2x.png"
-                  style="width:40px;height:40px;vertical-align:middle;"> `;
+                      style="width:40px;height:40px;vertical-align:middle;"> `;
       const desc=weather && weather.description || "";
       const temp=data?.main?.temp!==undefined?Math.round(data.main.temp)+" °C":"-";
       const wind=data?.wind?.speed!==undefined?(data.wind.speed*1.943844).toFixed(1)+" kt":"-";
@@ -636,7 +655,6 @@
       redrawRoute(); updateRouteTable();
     });
 
-    // PDF export with NavForce logo + wordmark watermark
     downloadPdfBtn.addEventListener("click", () => {
       if (!routeTableBody.rows.length) {
         alert("No route data to export.");
@@ -738,7 +756,6 @@
         exportPdfWithoutWatermark();
       };
 
-      // Replace with your actual hosted NavForce logo URL
       img.src = "https://agi-prod-file-upload-public-main-use1.s3.amazonaws.com/d2cae29d-bcd6-4e50-afa8-5130c39b17b2";
     });
 
@@ -834,20 +851,27 @@
       }
     }
 
-    latLonGo.onclick=handleLatLonSearch;
-    latLonInput.addEventListener("keypress",e=>{
-      if(e.key==="Enter"){ e.preventDefault(); handleLatLonSearch(); }
-    });
+    // NEW: Lat/Lon search using small deg/min + N/S E/W boxes
+    latLonGo.onclick = handleLatLonSearch;
     async function handleLatLonSearch(){
-      const value=latLonInput.value.trim();
-      const pattern=
-        /^(\d{1,2})\s+(\d{1,2}(\.\d+)?)\s*([NSns]),\s*(\d{1,3})\s+(\d{1,2}(\.\d+)?)\s*([EWew])$/;
-      const match=value.match(pattern);
-      if(!match){ alert("Format: 37 47.5 N, 122 25.2 W"); return; }
-      let latDeg=parseFloat(match[1]), latMin=parseFloat(match[2]), latDir=match[4].toUpperCase();
-      let lonDeg=parseFloat(match[5]), lonMin=parseFloat(match[6]), lonDir=match[8].toUpperCase();
-      let lat=latDeg+latMin/60; if(latDir==="S") lat=-lat;
-      let lon=lonDeg+lonMin/60; if(lonDir==="W") lon=-lon;
+      const latDeg = parseFloat(document.getElementById("latDegTop").value);
+      const latMin = parseFloat(document.getElementById("latMinTop").value);
+      const lonDeg = parseFloat(document.getElementById("lonDegTop").value);
+      const lonMin = parseFloat(document.getElementById("lonMinTop").value);
+      const latHem = document.getElementById("latHemTop").value;
+      const lonHem = document.getElementById("lonHemTop").value;
+
+      if (Number.isNaN(latDeg) || Number.isNaN(latMin) ||
+          Number.isNaN(lonDeg) || Number.isNaN(lonMin)) {
+        alert("Enter degrees and minutes for both latitude and longitude.");
+        return;
+      }
+
+      let lat = latDeg + latMin / 60;
+      let lon = lonDeg + lonMin / 60;
+      if (latHem === "S") lat = -lat;
+      if (lonHem === "W") lon = -lon;
+
       map.setView([lat,lon],4);
       if(enableWaypointsTop.checked) addWaypoint(lat,lon);
       else addSingleMarker(lat,lon);
@@ -856,4 +880,3 @@
   </script>
 </body>
 </html>
-
